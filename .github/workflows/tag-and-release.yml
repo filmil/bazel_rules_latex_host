@@ -43,11 +43,12 @@ jobs:
       - name: Get repo name
         run: echo "REPO_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
       - name: Prepare source archive release artifact
-        uses: thedoctor0/zip-release@0.7.5
-        with:
-          type: 'zip'
-          filename: "${{ env.REPO_NAME }}-${{ env.VERSION }}.zip"
-          exclusions: '*.git* /bazel-* user.bazelrc'
+        # Use `git archive` so the source zip contains only tracked files at the
+        # repo root (no .git, no untracked build outputs, and crucially none of
+        # the `bazel-*` convenience symlinks that a prior build leaves behind).
+        run: |
+          git archive --format=zip \
+            --output="${{ env.REPO_NAME }}-${{ env.VERSION }}.zip" HEAD
       - name: Upload source archive
         uses: ncipollo/release-action@v1
         env:
