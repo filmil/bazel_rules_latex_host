@@ -1,0 +1,28 @@
+load("@rules_latex_host//latex:defs.bzl", "combined_pdf", "latex_document")
+
+# Builds hello.tex -> hello.pdf using the toolchain that rules_latex_host
+# auto-registers. `bazel build //:hello` produces bazel-bin/hello.pdf.
+latex_document(
+    name = "hello",
+    main = "hello.tex",
+)
+
+latex_document(
+    name = "hello2",
+    main = "hello2.tex",
+)
+
+# Concatenate the two PDFs with a top-level outline. `bazel build //:book`
+# produces bazel-bin/book.pdf with "Part One"/"Part Two" bookmarks.
+combined_pdf(
+    name = "book",
+    out = "book.pdf",
+    parts = [
+        ":hello",
+        ":hello2",
+    ],
+    bookmarks = [
+        "Part One",
+        "Part Two",
+    ],
+)

@@ -1,0 +1,36 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("//latex:toolchain.bzl", "latex_toolchain")
+
+# The toolchain type document rules depend on. Its resolution picks the
+# registered implementation (see //MODULE.bazel `register_toolchains`).
+toolchain_type(name = "toolchain_type")
+
+# --- System toolchain -------------------------------------------------------
+# Tools are thin wrappers that `exec` the host binaries (non-hermetic). To go
+# hermetic, add another `latex_toolchain` whose tools are vendored binaries and
+# register it instead of (or ahead of) this one.
+latex_toolchain(
+    name = "system_latex",
+    gs = "//latex/system:gs.sh",
+    pdfinfo = "//latex/system:pdfinfo.sh",
+    pdflatex = "//latex/system:pdflatex.sh",
+    pdfunite = "//latex/system:pdfunite.sh",
+    visibility = ["//visibility:public"],
+)
+
+toolchain(
+    name = "system_latex_toolchain",
+    toolchain = ":system_latex",
+    toolchain_type = ":toolchain_type",
+)
+
+# Consumed by the `combined_pdf` rule (see defs.bzl).
+exports_files(["combine.sh"])
+
+# `bazel run @rules_latex_host//latex:install_tools` installs the host TeX
+# toolchain + poppler-utils + ghostscript via the platform package manager.
+sh_binary(
+    name = "install_tools",
+    srcs = ["install-tools.sh"],
+    visibility = ["//visibility:public"],
+)

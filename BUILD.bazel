@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0
+# rules_latex_host — Bazel rules that build LaTeX PDFs by shelling out to the
+# host TeX toolchain. See //latex for the rules and toolchain.
+exports_files(["LICENSE"])

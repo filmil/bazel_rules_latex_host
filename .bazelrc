@@ -1,0 +1,9 @@
+# Add your local user settings to file `user.bazelrc`
+try-import %workspace%/user.bazelrc
+
+# Add project-wide settings below.
+#
+# My registry first, then BCR. (Adding a custom registry drops the BCR default,
+# so BCR must be added back explicitly.)
+common --registry=https://raw.githubusercontent.com/filmil/bazel-registry/main
+common --registry=https://bcr.bazel.build

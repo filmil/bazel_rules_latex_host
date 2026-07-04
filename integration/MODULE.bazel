@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+module(
+    name = "rules_latex_host_integration",
+    version = "0.0.0",
+)
+
+# This brings in `rules_latex_host`. Pick the most recent version.
+bazel_dep(name = "rules_latex_host", version = "0.0.1")
+
+# Only used in this integration repository so it always builds against the
+# checked-out `rules_latex_host` rather than a published version.
+local_path_override(
+    module_name = "rules_latex_host",
+    path = "../",
+)

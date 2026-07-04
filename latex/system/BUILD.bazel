@@ -1,0 +1,9 @@
+# System TeX/PDF tool wrappers. Each script sets a sane PATH and `exec`s the
+# corresponding host binary, so the toolchain has a stable file interface even
+# though the tools themselves are not hermetic.
+exports_files([
+    "pdflatex.sh",
+    "pdfinfo.sh",
+    "pdfunite.sh",
+    "gs.sh",
+])
