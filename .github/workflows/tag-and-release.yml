@@ -33,16 +33,27 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release_branches: main
+          # Without this, the action bumps the patch version on every run, even
+          # when no commit landed since the last tag. The monthly cron then
+          # released the same tree again and again: v0.0.2, v0.0.3 and v0.0.4
+          # all point at commit c4fe191. `false` makes the action emit an empty
+          # `new_tag` when no commit asks for a release, and the guards below
+          # then skip the release and the publication.
+          default_bump: false
       - name: Create a GitHub release
+        if: ${{ steps.tag_version.outputs.new_tag != '' }}
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.tag_version.outputs.new_tag }}
           generateReleaseNotes: true
       - name: Get release tag
+        if: ${{ steps.tag_version.outputs.new_tag != '' }}
         run: echo "VERSION=${{ steps.tag_version.outputs.new_tag }}" >> $GITHUB_ENV
       - name: Get repo name
+        if: ${{ steps.tag_version.outputs.new_tag != '' }}
         run: echo "REPO_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
       - name: Prepare source archive release artifact
+        if: ${{ steps.tag_version.outputs.new_tag != '' }}
         # Use `git archive` so the source zip contains only tracked files at the
         # repo root (no .git, no untracked build outputs, and crucially none of
         # the `bazel-*` convenience symlinks that a prior build leaves behind).
@@ -50,6 +61,7 @@ jobs:
           git archive --format=zip \
             --output="${{ env.REPO_NAME }}-${{ env.VERSION }}.zip" HEAD
       - name: Upload source archive
+        if: ${{ steps.tag_version.outputs.new_tag != '' }}
         uses: ncipollo/release-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -58,9 +70,11 @@ jobs:
           allowUpdates: true
           artifacts: "${{ env.REPO_NAME }}-${{ env.VERSION }}.zip"
 
-  # Waits for the release artifact, then opens a PR to the registry.
+  # Waits for the release artifact, then opens a PR to the registry. The job
+  # runs only when the tag job made a new tag.
   publish:
     needs: tag
+    if: ${{ needs.tag.outputs.tag_name != '' }}
     uses: ./.github/workflows/publish.yml
     with:
       tag_name: ${{ needs.tag.outputs.tag_name }}
