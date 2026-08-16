@@ -2,8 +2,13 @@ load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("//latex:toolchain.bzl", "latex_toolchain")
 
 # The toolchain type document rules depend on. Its resolution picks the
-# registered implementation (see //MODULE.bazel `register_toolchains`).
-toolchain_type(name = "toolchain_type")
+# registered implementation (see //MODULE.bazel `register_toolchains`). Public:
+# a `toolchain()` declared elsewhere — such as the one the `hermetic_latex`
+# extension generates — has to name it.
+toolchain_type(
+    name = "toolchain_type",
+    visibility = ["//visibility:public"],
+)
 
 # --- System toolchain -------------------------------------------------------
 # Tools are thin wrappers that `exec` the host binaries (non-hermetic). To go

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# Repository rules and pins behind the hermetic LaTeX toolchain. Consumers do
+# not load from here directly — they go through the `hermetic_latex` module
+# extension in //latex:extensions.bzl.
+
+exports_files([
+    "repositories.bzl",
+    "versions.bzl",
+])

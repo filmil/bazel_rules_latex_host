@@ -20,3 +20,6 @@ The host TeX tools must be installed first (the rules shell out to them):
 ```sh
 bazel run @rules_latex_host//latex:install_tools
 ```
+
+For the same thing with nothing installed at all, see the sibling module
+[`../hermetic`](../hermetic), which vendors the toolchain instead.
