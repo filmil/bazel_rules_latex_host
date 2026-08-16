@@ -45,7 +45,9 @@ def _latex_document_impl(ctx):
 
     ctx.actions.run_shell(
         inputs = ctx.files.srcs,
-        tools = [tc.pdflatex],
+        # `tc.files` is empty for the system toolchain and the whole vendored
+        # TeX tree for a hermetic one; declaring it keeps the action sandboxable.
+        tools = depset([tc.pdflatex], transitive = [tc.files]),
         outputs = [out],
         command = "\n".join(lines),
         mnemonic = "LaTeX",
@@ -104,7 +106,7 @@ def _combined_pdf_impl(ctx):
 
     ctx.actions.run_shell(
         inputs = pdfs + [combine, titles_file],
-        tools = [tc.pdfinfo, tc.pdfunite, tc.gs],
+        tools = depset([tc.pdfinfo, tc.pdfunite, tc.gs], transitive = [tc.files]),
         outputs = [out],
         command = command,
         mnemonic = "PdfCombine",

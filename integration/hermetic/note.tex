@@ -1,0 +1,18 @@
+% SPDX-License-Identifier: Apache-2.0
+% Plain article: builds against the default vendored TeX tree with no extra
+% `texlive_packages`.
+\documentclass{article}
+
+\usepackage[hidelinks]{hyperref}
+
+\begin{document}
+
+\section*{A Short Note}
+
+Two documents, one toolchain. This one uses only the LaTeX base, so it would
+build even with \texttt{texlive\_packages} removed from \texttt{MODULE.bazel}.
+
+Both PDFs are concatenated into \texttt{collection.pdf}, which is where the
+other three vendored tools come in: page counts, the merge, and the outline.
+
+\end{document}

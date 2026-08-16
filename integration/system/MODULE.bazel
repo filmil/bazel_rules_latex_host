@@ -11,5 +11,5 @@ bazel_dep(name = "rules_latex_host", version = "0.0.1")
 # checked-out `rules_latex_host` rather than a published version.
 local_path_override(
     module_name = "rules_latex_host",
-    path = "../",
+    path = "../../",
 )

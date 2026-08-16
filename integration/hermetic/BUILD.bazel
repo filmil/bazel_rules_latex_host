@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: Apache-2.0
+# These targets are identical to what you would write against the `system`
+# toolchain — the document rules name no tool, only `//latex:toolchain_type`.
+# Swapping the toolchain in MODULE.bazel is the entire difference.
+
+load("@rules_latex_host//latex:defs.bzl", "combined_pdf", "latex_document")
+
+# A one-page IEEEtran paper with a tikz figure: needs `ieeetran` and `pgf`,
+# which MODULE.bazel adds to the vendored TeX tree.
+latex_document(
+    name = "paper",
+    main = "paper.tex",
+    deps = glob(["sections/*.tex"]),
+)
+
+# A plain-article document that needs only the base TeX distribution.
+latex_document(
+    name = "note",
+    main = "note.tex",
+)
+
+# Concatenate both with a top-level PDF outline. This exercises the other three
+# tools in the toolchain (pdfinfo for page offsets, pdfunite for the merge,
+# ghostscript for the bookmarks) — all vendored too.
+combined_pdf(
+    name = "collection",
+    out = "collection.pdf",
+    bookmarks = [
+        "A Hermetic Paper",
+        "A Short Note",
+    ],
+    parts = [
+        ":paper",
+        ":note",
+    ],
+)

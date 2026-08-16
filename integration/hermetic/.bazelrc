@@ -1,0 +1,29 @@
+# Add your local user settings to file `user.bazelrc`
+try-import %workspace%/user.bazelrc
+
+# --- Custom registry --------------------------------------------------------
+#
+# `rules_latex_host` is published in a personal Bazel registry, not in the
+# Bazel Central Registry, so the registry that hosts it has to be named here.
+#
+# Order matters, and so does the second line: naming any `--registry` REPLACES
+# the built-in default rather than adding to it, so BCR has to be added back
+# explicitly or every other dependency (platforms, rules_shell, ...) stops
+# resolving. Registries are consulted in the order given.
+#
+# (This module also carries a `local_path_override` so it builds against the
+# rules two directories up; a real consumer drops that and resolves the module
+# from the registry below.)
+common --registry=https://raw.githubusercontent.com/filmil/bazel-registry/main
+common --registry=https://bcr.bazel.build
+
+# --- Hermeticity ------------------------------------------------------------
+#
+# The whole point of this example: the toolchain is vendored, so the actions
+# declare every file they touch and can run in the sandbox. (A build on the
+# `system` toolchain needs `--spawn_strategy=local`, because it reaches for TeX
+# binaries in /usr/bin that Bazel knows nothing about.)
+build --spawn_strategy=sandboxed
+
+# Clearer diagnostics when a pdflatex pass fails.
+build --verbose_failures

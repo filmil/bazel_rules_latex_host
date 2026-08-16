@@ -1,0 +1,49 @@
+% SPDX-License-Identifier: Apache-2.0
+% Uses IEEEtran and tikz — neither is in the default vendored TeX tree, both are
+% added by the `texlive_packages` attribute in MODULE.bazel.
+\documentclass[journal,9pt]{IEEEtran}
+
+\usepackage{tikz}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\begin{document}
+
+\title{Building This PDF Without Installing \TeX}
+\author{rules\_latex\_host, hermetic toolchain example}
+\maketitle
+
+\begin{abstract}
+This document was typeset by a \texttt{pdflatex} that Bazel downloaded, not by
+one installed on the machine. The engine, the PDF utilities and every
+\texttt{.sty} file it read are declared inputs of the build action.
+\end{abstract}
+
+\section{How the tools are resolved}
+
+The \texttt{latex\_document} rule names no binary. It depends on
+\texttt{//latex:toolchain\_type}, and toolchain resolution picks whichever
+implementation the root module registered.
+
+\input{sections/pipeline}
+
+\section{What is vendored}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+Contract   & Provided by   & Pinned by \\
+\midrule
+pdflatex   & TinyTeX       & \texttt{texlive\_*} attributes \\
+pdfinfo    & qpdf shim     & \texttt{qpdf\_*} attributes \\
+pdfunite   & qpdf shim     & \texttt{qpdf\_*} attributes \\
+gs         & Ghostscript   & \texttt{gs\_*} attributes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Each archive is fetched by SHA-256, so the toolchain is the same on every
+machine and in CI.
+
+\end{document}

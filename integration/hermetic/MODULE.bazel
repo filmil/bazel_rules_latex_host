@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# A consumer of rules_latex_host that builds its PDFs with a hermetic TeX.
+# Nothing below refers to a host tool: `bazel build //...` on a machine with no
+# TeX installed produces the same PDFs as on a machine with a full TeX Live.
+
+module(
+    name = "rules_latex_host_hermetic_example",
+    version = "0.0.0",
+)
+
+# Resolved from the custom registry named in .bazelrc, not from BCR.
+bazel_dep(name = "rules_latex_host", version = "0.0.5")
+
+# Only because this module lives inside the rules repository: it always builds
+# against the checked-out rules rather than a published version. A real consumer
+# writes the `bazel_dep` above and nothing else — the registry in .bazelrc
+# resolves it.
+local_path_override(
+    module_name = "rules_latex_host",
+    path = "../../",
+)
+
+# --- The hermetic toolchain -------------------------------------------------
+#
+# The extension fetches a pinned TeX distribution, qpdf and ghostscript, and
+# binds them into a `latex_toolchain`. Called bare, it uses the pins in
+# `@rules_latex_host//latex/hermetic:versions.bzl`.
+hermetic_latex = use_extension(
+    "@rules_latex_host//latex:extensions.bzl",
+    "hermetic_latex",
+)
+
+# The default TeX distribution (TinyTeX-1) carries the LaTeX base and the common
+# packages but not IEEEtran or pgf/tikz, which `paper.tex` uses — `tlmgr` adds
+# them when the repository is fetched. Drop this attribute and the two extra
+# `\usepackage` lines if the base set is enough for your document; pin a bigger
+# tarball with `texlive_url`/`texlive_sha256` if you would rather not have
+# fetch-time network access to CTAN.
+hermetic_latex.toolchain(
+    texlive_packages = [
+        "ieeetran",
+        "pgf",
+        # IEEEtran sets \texttt in Courier, whose metrics live in the URW
+        # "Base 35" pack. Without it the engine falls back to generating the
+        # font with METAFONT, which fails on a tree that has no source for it.
+        "courier",
+    ],
+)
+use_repo(hermetic_latex, "hermetic_latex")
+
+# Registered here, in the ROOT module, which is what makes it win: root
+# registrations are matched before those a dependency makes for itself, so this
+# takes precedence over the `system` toolchain that rules_latex_host registers.
+# On a platform the pinned binaries do not cover the hermetic toolchain is
+# skipped and that system toolchain is used instead.
+register_toolchains("@hermetic_latex//:all")
+
+# Nothing else: no tool paths, no per-document toolchain wiring. Everything
+# above the `local_path_override` is exactly what a consumer of the published
+# module would write.

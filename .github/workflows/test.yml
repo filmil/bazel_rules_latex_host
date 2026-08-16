@@ -26,5 +26,36 @@ jobs:
         run: sudo bash latex/install-tools.sh
       - name: Build
         run: bazel build //...
-      - name: Build integration (compiles a real PDF)
-        run: cd integration && bazel build //...
+      - name: Build integration/system (compiles a real PDF)
+        run: cd integration/system && bazel build //...
+
+  hermetic:
+    # Deliberately does NOT install TeX: the vendored toolchain has to supply
+    # everything. A host tool leaking into an action fails here.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup bazel
+        uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-hermetic
+          repository-cache: true
+      - name: Confirm the runner has no TeX
+        run: |
+          if command -v pdflatex; then
+            echo "runner has a host pdflatex; this job no longer proves anything" >&2
+            exit 1
+          fi
+      - name: Build integration/hermetic (compiles real PDFs, no TeX installed)
+        run: cd integration/hermetic && bazel build //...
+      - name: Check the PDFs came out
+        run: |
+          cd integration/hermetic
+          for f in paper note collection; do
+            test -s "bazel-bin/$f.pdf" || { echo "missing bazel-bin/$f.pdf" >&2; exit 1; }
+          done
+          # A PDF header is the cheapest end-to-end assertion available without
+          # installing a PDF tool — which would defeat the purpose of the job.
+          head -c 5 bazel-bin/collection.pdf | grep -q '%PDF-'

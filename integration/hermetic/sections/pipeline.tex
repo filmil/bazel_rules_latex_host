@@ -1,0 +1,26 @@
+% SPDX-License-Identifier: Apache-2.0
+% Pulled in by paper.tex via \input, and passed to the rule through `deps` —
+% a file the master \input's is not discovered automatically.
+\usetikzlibrary{positioning}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+  node distance=6mm,
+  box/.style={draw, rounded corners, inner sep=3pt, font=\footnotesize},
+]
+  \node[box] (doc)  {\texttt{paper.tex}};
+  \node[box, below=of doc] (rule) {\texttt{latex\_document}};
+  \node[box, below=of rule] (tc)  {\texttt{toolchain\_type}};
+  \node[box, below left=6mm and 2mm of tc]  (herm) {hermetic};
+  \node[box, below right=6mm and 2mm of tc] (sys)  {system};
+
+  \draw[->] (doc)  -- (rule);
+  \draw[->] (rule) -- (tc);
+  \draw[->] (tc)   -- (herm) node[midway, left,  font=\scriptsize] {registered};
+  \draw[->, dashed] (tc) -- (sys) node[midway, right, font=\scriptsize] {fallback};
+\end{tikzpicture}
+\caption{Resolution. The document target reaches the toolchain type; the root
+module decides what sits underneath it. The system toolchain still serves
+platforms the pinned binaries do not cover.}
+\end{figure}
