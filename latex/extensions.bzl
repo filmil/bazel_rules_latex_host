@@ -67,6 +67,13 @@ _toolchain = tag_class(
                   "extraction (e.g. [\"ieeetran\", \"pgf\"]). Costs fetch-time " +
                   "network access and a host perl, and is not content-addressed.",
         ),
+        "texlive_packages_repository": attr.string(
+            default = TEXLIVE["packages_repository"],
+            doc = "TeX Live repository `tlmgr install` fetches from. The " +
+                  "default is the dated tlnet snapshot matching the pinned " +
+                  "distribution, so the two cannot drift apart; set it " +
+                  "alongside `texlive_url` when pinning a different vintage.",
+        ),
         "qpdf_url": attr.string(default = QPDF["url"]),
         "qpdf_sha256": attr.string(default = QPDF["sha256"]),
         "qpdf_strip_prefix": attr.string(default = QPDF["strip_prefix"]),
@@ -92,6 +99,7 @@ def _pins(tag):
         tag.texlive_strip_prefix,
         tag.texlive_engine,
         tuple(tag.texlive_packages),
+        tag.texlive_packages_repository,
         tag.qpdf_url,
         tag.qpdf_sha256,
         tag.qpdf_strip_prefix,
@@ -155,6 +163,7 @@ def _declare(tag):
         strip_prefix = tag.texlive_strip_prefix,
         engine = tag.texlive_engine,
         packages = tag.texlive_packages,
+        packages_repository = tag.texlive_packages_repository,
     )
     qpdf_repository(
         name = qpdf,

@@ -405,7 +405,7 @@
     },
     "@@rules_latex_host+//latex:extensions.bzl%hermetic_latex": {
       "general": {
-        "bzlTransitiveDigest": "Db8LEyrUmtgMy6dd7ltJxuiMCw7AJPZRUiiUFou8hDM=",
+        "bzlTransitiveDigest": "OZGU15SqK418KvD9ykLiWxi1sR26lY6y8vhoEPtEp/U=",
         "usagesDigest": "yBnI00jWuvFRQRsacZ9TSM1veWxBjKVR7jRSol32F5M=",
         "recordedInputs": [
           "REPO_MAPPING:rules_latex_host+,platforms platforms"
@@ -422,7 +422,8 @@
                 "ieeetran",
                 "pgf",
                 "courier"
-              ]
+              ],
+              "packages_repository": "https://texlive.info/tlnet-archive/2026/08/01/tlnet/"
             }
           },
           "hermetic_latex_qpdf": {
