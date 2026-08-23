@@ -90,8 +90,16 @@ def _texlive_repository_impl(rctx):
         tlmgr = rctx.path(rctx.attr.engine).dirname.get_child("tlmgr")
         if not tlmgr.exists:
             fail("texlive_packages was set but this distribution has no tlmgr at %s" % tlmgr)
+
+        # `--repository` rather than the distribution's baked-in default, which
+        # is a live mirror. A live mirror serves whatever TeX Live is today;
+        # this tlmgr is whatever it was when the pinned archive was built, and
+        # tlmgr refuses to install across that gap ("tlmgr itself needs to be
+        # updated"). The pinned snapshot is one the pinned tlmgr always agrees
+        # with. Left empty, the baked-in default is used, drift and all.
+        repository = (["--repository", rctx.attr.packages_repository] if rctx.attr.packages_repository else [])
         res = rctx.execute(
-            [str(tlmgr), "install"] + rctx.attr.packages,
+            [str(tlmgr)] + repository + ["install"] + rctx.attr.packages,
             timeout = rctx.attr.packages_timeout,
         )
         if res.return_code != 0:
@@ -127,6 +135,12 @@ texlive_repository = repository_rule(
             default = [],
             doc = "TeX Live packages to add with `tlmgr install` after extraction. " +
                   "Requires network and a host perl at fetch time.",
+        ),
+        "packages_repository": attr.string(
+            default = "",
+            doc = "TeX Live repository URL `tlmgr install` fetches from. Pin a " +
+                  "dated tlnet snapshot matching the distribution's vintage; " +
+                  "empty means the distribution's own (live, drifting) default.",
         ),
         "packages_timeout": attr.int(default = 1200),
     },

@@ -25,6 +25,20 @@ and resolution falls through to the registered `system` toolchain.
 
 TINYTEX_VERSION = "v2026.08"
 
+# The TeX Live package repository `tlmgr install` fetches from, pinned to the
+# tlnet snapshot of the day this TinyTeX release was built (it is released on
+# the 1st of its named month). The two move together — bump one, bump both.
+#
+# The pin is not decoration. TeX Live is a rolling release with one live
+# repository: the moment upstream updates tlmgr's own infrastructure, every
+# older tlmgr asked to install from a live mirror refuses with "tlmgr itself
+# needs to be updated" and terminates. A distribution pinned by sha256 plus a
+# repository that moves is a fetch that breaks on a schedule — which is how it
+# was found, by a cron CI run with no commit in it. texlive.info keeps daily
+# tlnet snapshots precisely so a fixed tlmgr can keep a repository it agrees
+# with.
+TEXLIVE_TLNET_REPOSITORY = "https://texlive.info/tlnet-archive/2026/08/01/tlnet/"
+
 QPDF_VERSION = "12.4.0"
 
 GHOSTSCRIPT_VERSION = "10.0.0"
@@ -37,6 +51,7 @@ TEXLIVE = {
     "sha256": "6bcde65cbbc147d6e492fa105a7210a06792d609358ef74a14a95228e3e36656",
     "strip_prefix": ".TinyTeX",
     "engine": "bin/x86_64-linux/pdflatex",
+    "packages_repository": TEXLIVE_TLNET_REPOSITORY,
 }
 
 # Other TinyTeX variants, for `hermetic_latex.toolchain(texlive_url = ...)`.
