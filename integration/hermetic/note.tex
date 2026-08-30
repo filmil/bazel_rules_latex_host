@@ -1,16 +1,32 @@
 % SPDX-License-Identifier: Apache-2.0
-% Plain article: builds against the default vendored TeX tree with no extra
-% `texlive_packages`.
+% Plain article, set in XCharter to exercise `texlive_archives`.
+%
+% XCharter is in no TinyTeX variant, so it can only come from an added package.
+% It is also the interesting case for the mechanism: it ships a font map, which
+% has to be registered with updmap-sys, and it needs three support packages
+% that `texlive_archives` will not resolve on its own.
 \documentclass{article}
 
+\usepackage[T1]{fontenc}
+% lmodern first, for a Type 1 typewriter face: T1 \texttt with neither lmodern
+% nor cm-super present makes the engine generate a bitmap with METAFONT, which
+% lands in the PDF as a Type 3 font. XCharter then overrides the roman only.
+\usepackage{lmodern}
+\usepackage{XCharter}
 \usepackage[hidelinks]{hyperref}
 
 \begin{document}
 
 \section*{A Short Note}
 
-Two documents, one toolchain. This one uses only the LaTeX base, so it would
-build even with \texttt{texlive\_packages} removed from \texttt{MODULE.bazel}.
+Two documents, one toolchain. This one is set in XCharter, which reaches the
+vendored TeX tree through \texttt{texlive\_archives}: four archives pinned by
+sha256 in \texttt{MODULE.bazel}, unpacked into \texttt{texmf-dist}, with
+\texttt{mktexlsr} and \texttt{updmap-sys} run afterwards so the engine can find
+the files and embed the glyphs.
+
+That the glyphs below are XCharter and not the default roman is the test. A
+missing map would still typeset, and the letters would come out wrong.
 
 Both PDFs are concatenated into \texttt{collection.pdf}, which is where the
 other three vendored tools come in: page counts, the merge, and the outline.

@@ -405,8 +405,8 @@
     },
     "@@rules_latex_host+//latex:extensions.bzl%hermetic_latex": {
       "general": {
-        "bzlTransitiveDigest": "OZGU15SqK418KvD9ykLiWxi1sR26lY6y8vhoEPtEp/U=",
-        "usagesDigest": "yBnI00jWuvFRQRsacZ9TSM1veWxBjKVR7jRSol32F5M=",
+        "bzlTransitiveDigest": "kEKkF7HzrdCB8wfkjbA3yKO/MJnrOjTJuSJE9pqjWyA=",
+        "usagesDigest": "p184rUMFllUxjHjQrTEDpOVCi5ycN2lMNu8QHwPHKbw=",
         "recordedInputs": [
           "REPO_MAPPING:rules_latex_host+,platforms platforms"
         ],
@@ -423,6 +423,12 @@
                 "pgf",
                 "courier"
               ],
+              "archives": {
+                "https://ftp.fau.de/ctan/systems/texlive/tlnet/archive/xcharter.tar.xz": "92ae152668b18a271830f2efa4d26792c7dc69cc36ee8f2967695de154f1bf04",
+                "https://ftp.fau.de/ctan/systems/texlive/tlnet/archive/xstring.tar.xz": "55356a92ac81d131d4931ee34f7d4887b64b0fc093983f815955d98a2a715cd0",
+                "https://ftp.fau.de/ctan/systems/texlive/tlnet/archive/fontaxes.tar.xz": "dd631fa080cbda12fa79b9342aeb3b4a04df7c96578fe9919e7e7e7231714f84",
+                "https://ftp.fau.de/ctan/systems/texlive/tlnet/archive/carlisle.tar.xz": "aeed9bc1174ff60f28662cb4057e78457085e186361f0c335a74aed669412629"
+              },
               "packages_repository": "https://texlive.info/tlnet-archive/2026/08/01/tlnet/"
             }
           },

@@ -75,6 +75,81 @@ mkdir -p "$TEXMFVAR"
 exec "$here/{engine}" "$@"
 """
 
+def _map_files(rctx, root):
+    """Font map files under `root`, as paths relative to the texmf tree.
+
+    TeX Live keeps them at `fonts/map/<driver>/<package>/<name>.map`, so the
+    walk is two levels deep and needs no recursion. Uses `path.readdir` rather
+    than shelling out to `find`, so discovery costs nothing from the host.
+    """
+    found = []
+    maps = rctx.path(root + "/fonts/map")
+    if not maps.exists:
+        return found
+    for driver in maps.readdir():
+        if not driver.is_dir:
+            continue
+        for pkg in driver.readdir():
+            if not pkg.is_dir:
+                continue
+            for f in pkg.readdir():
+                if f.basename.endswith(".map"):
+                    found.append(f.basename)
+    return found
+
+def _install_archives(rctx, bin_dir):
+    """Extract content-addressed package archives into the distribution.
+
+    TeX Live's per-package archives (the `archive/` directory of any tlnet
+    snapshot) unpack relative to `texmf-dist`, which is exactly the layout the
+    extracted distribution already has, so they drop straight in.
+
+    Two housekeeping steps make the result usable, and they are the whole
+    reason this is not just a download. `mktexlsr` rebuilds the `ls-R` filename
+    database, without which kpathsea never sees the new files. `updmap-sys`
+    registers any font map the package brought, without which the engine finds
+    the metrics but cannot embed the glyphs.
+    """
+    if not rctx.attr.archives:
+        return
+
+    before = {m: True for m in _map_files(rctx, "texmf-dist")}
+    for url, sha256 in rctx.attr.archives.items():
+        rctx.download_and_extract(
+            url = url,
+            sha256 = sha256,
+            # The archives are texmf-relative; the engine's tree is one level
+            # down from the repository root.
+            output = "texmf-dist",
+        )
+
+    mktexlsr = rctx.path(bin_dir + "/mktexlsr")
+    if mktexlsr.exists:
+        res = rctx.execute([str(mktexlsr)], timeout = rctx.attr.packages_timeout)
+        if res.return_code != 0:
+            fail("mktexlsr after texlive_archives failed:\n%s\n%s" % (res.stdout, res.stderr))
+
+    added = [m for m in _map_files(rctx, "texmf-dist") if m not in before]
+    if not added:
+        return
+
+    updmap = rctx.path(bin_dir + "/updmap-sys")
+    if not updmap.exists:
+        fail(
+            "texlive_archives brought font maps (%s) but this distribution " % ", ".join(added) +
+            "has no updmap-sys at %s, so they cannot be registered." % updmap,
+        )
+    for m in added:
+        res = rctx.execute(
+            [str(updmap), "--nomkmap", "--enable", "Map=" + m],
+            timeout = rctx.attr.packages_timeout,
+        )
+        if res.return_code != 0:
+            fail("updmap-sys --enable Map=%s failed:\n%s\n%s" % (m, res.stdout, res.stderr))
+    res = rctx.execute([str(updmap)], timeout = rctx.attr.packages_timeout)
+    if res.return_code != 0:
+        fail("updmap-sys failed:\n%s\n%s" % (res.stdout, res.stderr))
+
 def _texlive_repository_impl(rctx):
     rctx.download_and_extract(
         url = rctx.attr.url,
@@ -83,9 +158,15 @@ def _texlive_repository_impl(rctx):
     )
     _chmod_x(rctx, rctx.attr.engine)
 
+    bin_dir = rctx.attr.engine.rsplit("/", 1)[0] if "/" in rctx.attr.engine else "."
+
+    # Content-addressed extras first, so a `tlmgr install` that follows sees a
+    # tree that already has them and skips what is present.
+    _install_archives(rctx, bin_dir)
+
     # Optional fetch-time package installation. Not content-addressed: it talks
     # to a CTAN mirror, so the fetched tree is only as reproducible as the
-    # mirror. Pin your own tarball instead when you need bit-for-bit fetches.
+    # mirror. Prefer `archives` when a pinned fetch matters.
     if rctx.attr.packages:
         tlmgr = rctx.path(rctx.attr.engine).dirname.get_child("tlmgr")
         if not tlmgr.exists:
@@ -109,7 +190,6 @@ def _texlive_repository_impl(rctx):
                 res.stderr,
             ))
 
-    bin_dir = rctx.attr.engine.rsplit("/", 1)[0] if "/" in rctx.attr.engine else "."
     rctx.file(
         "pdflatex.sh",
         _PDFLATEX_WRAPPER.format(
@@ -141,6 +221,16 @@ texlive_repository = repository_rule(
             doc = "TeX Live repository URL `tlmgr install` fetches from. Pin a " +
                   "dated tlnet snapshot matching the distribution's vintage; " +
                   "empty means the distribution's own (live, drifting) default.",
+        ),
+        "archives": attr.string_dict(
+            default = {},
+            doc = "Content-addressed package archives to unpack into the " +
+                  "distribution's texmf tree, as {url: sha256}. Unlike " +
+                  "`packages`, every byte is pinned and no live mirror is " +
+                  "consulted. TeX Live's own per-package archives work " +
+                  "directly: any tlnet snapshot serves them under " +
+                  "`archive/<package>.tar.xz`. Dependencies are not resolved; " +
+                  "list what the package needs alongside it.",
         ),
         "packages_timeout": attr.int(default = 1200),
     },

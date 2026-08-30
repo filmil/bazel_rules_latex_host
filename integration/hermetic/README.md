@@ -68,21 +68,41 @@ the `system` toolchain `rules_latex_host` registers. Where the pinned binaries
 do not fit the exec platform, the hermetic toolchain is skipped and the system
 one is used — so a repository shared across a mixed fleet still builds.
 
-`texlive_packages` is what the base distribution does not carry: `paper.tex` is
-an IEEEtran document with a tikz figure, and IEEEtran sets `\texttt` in Courier.
-Those are installed with `tlmgr` when the repository is fetched, which needs
-network access to a CTAN mirror and a host perl at fetch time — pin a larger
-tarball with `texlive_url`/`texlive_sha256` if you would rather not depend on
-either. [`note.tex`](./note.tex) needs none of this and builds against the base
-distribution as it comes.
+This module exercises **both** ways of adding what the base distribution does
+not carry.
+
+`texlive_packages` installs with `tlmgr` at fetch time. `paper.tex` is an
+IEEEtran document with a tikz figure, and IEEEtran sets `\texttt` in Courier, so
+it needs three packages with dependencies of their own. That convenience costs
+network access to a live mirror and a host perl, and is not content-addressed.
+
+`texlive_archives` pins package archives by sha256 instead. `note.tex` is set
+in XCharter, which is in no TinyTeX variant, so no `texlive_url` can reach it.
+It is also the interesting case for the mechanism. XCharter ships a font map,
+which has to be registered with `updmap-sys`; without that the engine finds the
+metrics and cannot embed the glyphs. It also needs three support packages,
+which `texlive_archives` does not resolve for you. One of them is easy to miss:
+`scalefnt.sty` lives in `carlisle`, not in `graphics` where you would look.
+
+The URLs point at a CTAN mirror rather than `texlive.info`. The latter's dated
+snapshots would be the better source, but the host is behind an anti-scraper
+that answers an unrecognised client with HTTP 200 and a challenge page instead
+of the file, so a Bazel fetch fails there as a checksum mismatch.
 
 ## What the targets show
 
 | Target | Shows |
 |---|---|
-| `//:paper` | a multi-file document (`sections/*.tex` via `deps`) using packages added at fetch time |
-| `//:note` | the same rules against the stock vendored distribution |
+| `//:paper` | a multi-file document (`sections/*.tex` via `deps`) using packages added at fetch time with `texlive_packages` |
+| `//:note` | a document set in a font added by `texlive_archives`, the content-addressed path |
 | `//:collection` | `combined_pdf` — exercises the other three vendored tools: page counts, the merge, and the PDF outline |
+
+The check that matters for `//:note` is not that it builds. A missing font map
+still typesets, in the wrong face. Look at what actually got embedded:
+
+```sh
+pdffonts bazel-bin/note.pdf   # XCharter-Roman / XCharter-Bold, Type 1
+```
 
 [`BUILD.bazel`](./BUILD.bazel) is worth a look for what it *doesn't* contain:
 no tool paths, no toolchain wiring, nothing hermetic-specific. It is byte for
