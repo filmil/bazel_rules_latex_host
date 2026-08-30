@@ -19,12 +19,16 @@ vendored tools with no change to any `BUILD` file. Where the pinned binaries do
 not match the exec platform, the hermetic toolchain is skipped and the system
 one is used instead.
 
-Every pin is overridable, e.g. a bigger TeX distribution and extra CTAN
-packages:
+Every pin is overridable, e.g. a bigger TeX distribution and extra packages:
 
     hermetic_latex.toolchain(
         texlive_url = "https://.../TinyTeX-linux-x86_64-v2026.08.tar.xz",
         texlive_sha256 = "...",
+        # Content-addressed, and the preferred way to add a package:
+        texlive_archives = {
+            "https://texlive.info/tlnet-archive/2026/08/01/tlnet/archive/xcharter.tar.xz": "92ae...",
+        },
+        # Resolves dependencies, but talks to a live mirror:
         texlive_packages = ["ieeetran", "pgf"],
     )
 """
@@ -67,6 +71,16 @@ _toolchain = tag_class(
                   "extraction (e.g. [\"ieeetran\", \"pgf\"]). Costs fetch-time " +
                   "network access and a host perl, and is not content-addressed.",
         ),
+        "texlive_archives": attr.string_dict(
+            default = {},
+            doc = "Content-addressed package archives to unpack into the TeX " +
+                  "tree, as {url: sha256}. Prefer this over " +
+                  "`texlive_packages`: every byte is pinned, no live mirror " +
+                  "is consulted, and the extension stays `reproducible`. TeX " +
+                  "Live's own per-package archives work directly, at " +
+                  "`<tlnet snapshot>/archive/<package>.tar.xz`. Dependencies " +
+                  "are not resolved, so list what a package needs alongside it.",
+        ),
         "texlive_packages_repository": attr.string(
             default = TEXLIVE["packages_repository"],
             doc = "TeX Live repository `tlmgr install` fetches from. The " +
@@ -99,6 +113,7 @@ def _pins(tag):
         tag.texlive_strip_prefix,
         tag.texlive_engine,
         tuple(tag.texlive_packages),
+        tuple(sorted(tag.texlive_archives.items())),
         tag.texlive_packages_repository,
         tag.qpdf_url,
         tag.qpdf_sha256,
@@ -163,6 +178,7 @@ def _declare(tag):
         strip_prefix = tag.texlive_strip_prefix,
         engine = tag.texlive_engine,
         packages = tag.texlive_packages,
+        archives = tag.texlive_archives,
         packages_repository = tag.texlive_packages_repository,
     )
     qpdf_repository(

@@ -125,22 +125,60 @@ resolution falls back to the `system` toolchain — a mixed fleet keeps working.
 
 The default distribution (`TinyTeX-1`, ~54 MB) has the LaTeX base and the common
 packages, but not everything — IEEEtran and pgf/tikz, for instance, are not in
-it. Two ways to get them:
+it. Three ways to get them:
 
 ```starlark
-# 1. Install at fetch time. Costs network access to a CTAN mirror and a host
-#    perl when the repository is fetched, and is not content-addressed.
+# 1. Pin the package archives. Content-addressed, so the fetch is reproducible
+#    byte for byte. Dependencies are NOT resolved: list what a package needs
+#    alongside it.
+hermetic_latex.toolchain(
+    texlive_archives = {
+        "https://ftp.fau.de/ctan/systems/texlive/tlnet/archive/xcharter.tar.xz": "92ae1526...",
+        "https://ftp.fau.de/ctan/systems/texlive/tlnet/archive/xstring.tar.xz": "55356a92...",
+    },
+)
+
+# 2. Install at fetch time. Resolves dependencies, but costs network access to
+#    a live mirror and a host perl, and is not content-addressed.
 hermetic_latex.toolchain(
     texlive_packages = ["ieeetran", "pgf", "courier"],
 )
 
-# 2. Pin a bigger tarball. Fully content-addressed; nothing to reproduce but
-#    the download.
+# 3. Pin a bigger tarball. Content-addressed, but limited to what the
+#    distribution ships: XCharter and Erewhon, for instance, are in no TinyTeX
+#    variant, so this cannot reach them.
 hermetic_latex.toolchain(
     texlive_url = "https://github.com/rstudio/tinytex-releases/releases/download/v2026.08/TinyTeX-linux-x86_64-v2026.08.tar.xz",
     texlive_sha256 = "...",
 )
 ```
+
+`texlive_archives` takes `{url: sha256}`. Each archive is unpacked into the
+distribution's `texmf-dist`, so it must be **texmf-relative** (`tex/latex/...`,
+`fonts/type1/...`), which is exactly the layout of TeX Live's own per-package
+archives. Every CTAN mirror serves them under
+`systems/texlive/tlnet/archive/<package>.tar.xz`. After unpacking, the rule
+runs `mktexlsr` so kpathsea sees the new files, and `updmap-sys` for any font
+map the package brought, without which the engine finds the metrics but cannot
+embed the glyphs.
+
+Two things to know before reaching for it:
+
+- **Do not fetch from `texlive.info`.** Its tlnet snapshots look like the ideal
+  source: dated, immutable, already in the right layout. But the host sits
+  behind an anti-scraper. It answers an unrecognised client with HTTP 200 and a
+  challenge page *instead of the file*. Bazel therefore fails with a checksum
+  mismatch rather than a download error, which is a confusing way to learn
+  this. Use a CTAN mirror, or re-host the archives yourself.
+- **CTAN's `tlnet` tree tracks the current TeX Live**, so a package's archive
+  is replaced when it is updated upstream. The sha256 pin turns that into a
+  loud failure rather than silent drift, but it does mean the pin needs
+  refreshing occasionally. Re-host the archives if you need them frozen.
+
+Note the asymmetry in what each option costs the build's reproducibility: with
+only `texlive_archives` the extension still reports `reproducible`, so no
+lockfile entry is needed. One `texlive_packages` entry gives that up, because a
+live mirror serves whatever it serves today.
 
 Every pin is overridable the same way (`qpdf_*`, `gs_*`, `exec_compatible_with`,
 …) — see the tag attributes in

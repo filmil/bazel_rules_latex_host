@@ -32,12 +32,38 @@ hermetic_latex = use_extension(
 )
 
 # The default TeX distribution (TinyTeX-1) carries the LaTeX base and the common
-# packages but not IEEEtran or pgf/tikz, which `paper.tex` uses — `tlmgr` adds
-# them when the repository is fetched. Drop this attribute and the two extra
-# `\usepackage` lines if the base set is enough for your document; pin a bigger
-# tarball with `texlive_url`/`texlive_sha256` if you would rather not have
-# fetch-time network access to CTAN.
+# packages, but not everything these two documents use. There are two ways to
+# add the rest, and this module exercises both.
+#
+# `texlive_archives` is the content-addressed way in: every entry is pinned by
+# sha256, so the fetch is reproducible byte for byte. TeX Live's own
+# per-package archives are already in the layout it wants, texmf-relative, and
+# every CTAN mirror serves them under `systems/texlive/tlnet/archive/`.
+# Dependencies are not resolved, so a package's prerequisites are listed
+# alongside it: `note.tex` uses XCharter, which needs three support packages
+# and brings a font map of its own.
+#
+# The URL is a CTAN mirror rather than texlive.info, deliberately.
+# texlive.info sits behind an anti-scraper that answers an unrecognised client
+# with HTTP 200 and a challenge page instead of the file, so a Bazel fetch from
+# there fails as a checksum mismatch rather than as a download error. Pick a
+# mirror, or re-host the archives yourself.
+#
+# `texlive_packages` resolves dependencies for you, but reaches a live mirror
+# at fetch time and is not content-addressed. Both are shown here because both
+# earn their place: the archives when a pinned fetch matters, the packages when
+# a large dependency tree does.
+_TLNET = "https://ftp.fau.de/ctan/systems/texlive/tlnet/archive"
+
 hermetic_latex.toolchain(
+    texlive_archives = {
+        _TLNET + "/xcharter.tar.xz": "92ae152668b18a271830f2efa4d26792c7dc69cc36ee8f2967695de154f1bf04",
+        _TLNET + "/xstring.tar.xz": "55356a92ac81d131d4931ee34f7d4887b64b0fc093983f815955d98a2a715cd0",
+        _TLNET + "/fontaxes.tar.xz": "dd631fa080cbda12fa79b9342aeb3b4a04df7c96578fe9919e7e7e7231714f84",
+        # scalefnt.sty, which XCharter requires, is in `carlisle` rather than
+        # in `graphics` where one would look for it first.
+        _TLNET + "/carlisle.tar.xz": "aeed9bc1174ff60f28662cb4057e78457085e186361f0c335a74aed669412629",
+    },
     texlive_packages = [
         "ieeetran",
         "pgf",
