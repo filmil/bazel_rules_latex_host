@@ -19,10 +19,14 @@ never on a binary, so switching is a `MODULE.bazel` edit.
 
 ## What you get
 
-- `latex_document(name, main, deps)` — compiles `main.tex` → `main.pdf` with
-  three `pdflatex` passes (resolves cross-references, `longtable`
-  continued-headers, and the in-document `thebibliography`). `deps` are extra
-  files the master `\input`s, e.g. `glob(["sections/*.tex"])`.
+- `latex_document(name, main, deps, data)` — compiles `main.tex` → `main.pdf`
+  with three `pdflatex` passes (resolves cross-references, `longtable`
+  continued-headers, and the in-document `thebibliography`). `deps` are the
+  other `.tex` files the master `\input`s, e.g. `glob(["sections/*.tex"])`.
+  `data` is everything else the document reads: figures, a bibliography, a
+  class or style file, e.g. `glob(["figures/*.png"])`. Both are copied into
+  the work directory under their package relative paths, so
+  `\includegraphics{figures/plot}` finds `figures/plot.png`.
 - `combined_pdf(name, out, parts)` — concatenates several PDFs with `pdfunite`
   and adds a top-level PDF outline via ghostscript.
 - A `//latex:toolchain_type` and a `system_latex` toolchain, auto-registered by
@@ -67,7 +71,8 @@ load("@rules_latex_host//latex:defs.bzl", "latex_document", "combined_pdf")
 latex_document(
     name = "paper",
     main = "paper.tex",
-    deps = glob(["sections/*.tex"]),   # files the master \input's
+    deps = glob(["sections/*.tex"]),   # .tex files the master \input's
+    data = glob(["figures/*.png"]),    # everything else it reads
 )
 ```
 

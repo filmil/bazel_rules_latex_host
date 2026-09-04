@@ -12,6 +12,15 @@ latex_document(
     main = "hello2.tex",
 )
 
+# A document that reads something other than a .tex file. Non-LaTeX
+# inputs go in `data`. `bazel build //:figure` produces
+# bazel-bin/figure.pdf with the checkerboard in it.
+latex_document(
+    name = "figure",
+    main = "figure.tex",
+    data = ["figures/check.png"],
+)
+
 # Concatenate the two PDFs with a top-level outline. `bazel build //:book`
 # produces bazel-bin/book.pdf with "Part One"/"Part Two" bookmarks.
 combined_pdf(
