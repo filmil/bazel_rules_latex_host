@@ -24,7 +24,7 @@ def _latex_document_impl(ctx):
     pkg = ctx.label.package
 
     copies = []
-    for f in ctx.files.srcs:
+    for f in ctx.files.srcs + ctx.files.data:
         rel = _rel(f, pkg)
         d = rel.rsplit("/", 1)[0] if "/" in rel else "."
         copies.append('mkdir -p "$W/' + d + '" && cp "' + f.path + '" "$W/' + rel + '"')
@@ -44,7 +44,7 @@ def _latex_document_impl(ctx):
     ]
 
     ctx.actions.run_shell(
-        inputs = ctx.files.srcs,
+        inputs = ctx.files.srcs + ctx.files.data,
         # `tc.files` is empty for the system toolchain and the whole vendored
         # TeX tree for a hermetic one; declaring it keeps the action sandboxable.
         tools = depset([tc.pdflatex], transitive = [tc.files]),
@@ -60,17 +60,27 @@ _latex_document = rule(
     attrs = {
         "main": attr.string(mandatory = True, doc = "Main .tex filename in this package."),
         "srcs": attr.label_list(allow_files = [".tex"], mandatory = True),
+        # Everything else the document reads: figures, a bibliography, a
+        # class or style file that ships with the paper. Each is copied
+        # into the work directory under its package relative path, so
+        # \includegraphics{figures/plot} finds figures/plot.png.
+        "data": attr.label_list(allow_files = True),
     },
     toolchains = [_TC],
 )
 
-def latex_document(name, main, deps = [], visibility = ["//visibility:public"], **kwargs):
+def latex_document(name, main, deps = [], data = [], visibility = ["//visibility:public"], **kwargs):
     """Compile `main` (a .tex file in this package) to a PDF via three passes.
 
     Args:
       name: target name.
       main: the main .tex file (e.g. "paper.tex").
-      deps: extra inputs it `\\input`s (e.g. glob(["sections/*.tex"])).
+      deps: the other .tex files it `\\input`s (e.g.
+        glob(["sections/*.tex"])).
+      data: everything else the document reads: figures, a bibliography,
+        a class or style file (e.g. glob(["figures/*.png"])). Each is
+        copied into the work directory under its package relative path,
+        so `\\includegraphics{figures/plot}` finds `figures/plot.png`.
       visibility: target visibility (public by default so a `combined_pdf`
         target can consume the produced PDF across packages).
       **kwargs: forwarded to the underlying rule.
@@ -79,6 +89,7 @@ def latex_document(name, main, deps = [], visibility = ["//visibility:public"], 
         name = name,
         main = main,
         srcs = [main] + deps,
+        data = data,
         visibility = visibility,
         **kwargs
     )
