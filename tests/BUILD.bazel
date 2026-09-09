@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+
+# The module has no test of its own that runs without a TeX: compiling a
+# document is the integration modules' job. This is what `bazel test //...`
+# checks here, and what the release runs at the tag: the toolchain, its
+# wrappers and the installer all build.
+#
+# A package of its own, and not //latex, because bazel_skylib is a dev
+# dependency: a consumer, and the registry's presubmit building
+# @rules_latex_host//latex/..., does not have it and must not load it.
+build_test(
+    name = "toolchain_builds",
+    targets = [
+        "//latex:install_tools",
+        # Building the toolchain builds its four wrappers.
+        "//latex:system_latex",
+        "//latex:toolchain_type",
+    ],
+)

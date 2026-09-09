@@ -3,8 +3,8 @@ load("//latex:toolchain.bzl", "latex_toolchain")
 
 # The toolchain type document rules depend on. Its resolution picks the
 # registered implementation (see //MODULE.bazel `register_toolchains`). Public:
-# a `toolchain()` declared elsewhere — such as the one the `hermetic_latex`
-# extension generates — has to name it.
+# a `toolchain()` declared elsewhere, such as the one the `hermetic_latex`
+# extension generates, has to name it.
 toolchain_type(
     name = "toolchain_type",
     visibility = ["//visibility:public"],
