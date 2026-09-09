@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 name: Test
 on:
   push:
@@ -15,9 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Setup bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
+        uses: bazel-contrib/setup-bazel@0.19.0
         with:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
@@ -26,6 +28,11 @@ jobs:
         run: sudo bash latex/install-tools.sh
       - name: Build
         run: bazel build //...
+      # The release workflow runs `bazel test //...` at the tag before it
+      # builds the archive, so a test that fails only there fails the release.
+      # Running it here fails the pull request instead.
+      - name: Test
+        run: bazel test //...
       - name: Build integration/system (compiles a real PDF)
         run: cd integration/system && bazel build //...
 
@@ -35,9 +42,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Setup bazel
-        uses: bazel-contrib/setup-bazel@0.15.0
+        uses: bazel-contrib/setup-bazel@0.19.0
         with:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}-hermetic
@@ -57,5 +64,5 @@ jobs:
             test -s "bazel-bin/$f.pdf" || { echo "missing bazel-bin/$f.pdf" >&2; exit 1; }
           done
           # A PDF header is the cheapest end-to-end assertion available without
-          # installing a PDF tool — which would defeat the purpose of the job.
+          # installing a PDF tool, which would defeat the purpose of the job.
           head -c 5 bazel-bin/collection.pdf | grep -q '%PDF-'
